@@ -58,7 +58,7 @@ function saveDashboard() {
 		'pid':pid,
 		'settings': { }
 	},params);
-	
+
 	$.ajax({
 		type: 'POST',
 		url: '',
@@ -66,11 +66,11 @@ function saveDashboard() {
 		data: fullParams
 	}).done(function(data){
 		var data = JSON.parse(data);
-		
+
 		// Remove any previous popups
 		var valPopupId = 'saveResult';
 		$('#'+valPopupId).remove();
-		
+
 		if(data.errors) {
 			simpleDialog(data.errors,'Error Creating Dashboard', valPopupId, 300);
 		} else {
@@ -91,8 +91,8 @@ function saveDashboard() {
 			updateResourcePanel();
 			refreshDashboard();
 			$('#configbox').slideToggle();
-			simpleDialog(msg,title,valPopupId, 300, 
-					"",'Close', 
+			simpleDialog(msg,title,valPopupId, 300,
+					"",'Close',
 					"window.location.href = app_path_webroot + 'ExternalLinks/index.php?pid=' + pid","Edit Bookmark Permissions");
 		}
 	});
@@ -146,7 +146,7 @@ function refreshTable() {
 // Called to update a container with the results from the given action method
 function ajaxUpdate(container_id, action) {
 	var $c = $('#' + container_id);
-	
+
 	// Fade in overlay for progress indicator
 	$('#overlay').css({
 		opacity : 0.8,
@@ -155,10 +155,10 @@ function ajaxUpdate(container_id, action) {
 		width   : $c.outerWidth(),
 		height  : $c.outerHeight()
 	}).fadeIn();
-	
+
 	//	showProgress(1);
 	//	$c.fadeOut(1000);
-	
+
 	// Merge optional params into default values (http://stackoverflow.com/questions/929776/merging-associative-arrays-javascript)
 	var params = getDashboardParams();
 	var fullParams = $.extend({
@@ -167,7 +167,7 @@ function ajaxUpdate(container_id, action) {
 		'settings': { }
 	},params);
 	//console.log('Dashboard fullParams'); console.log(fullParams);
-	
+
 	$.ajax({
 		type: 'POST',
 		url: '',
@@ -185,14 +185,14 @@ function ajaxUpdate(container_id, action) {
 function testRecordLabel() {
 	// Don't do anything if this isn't a longitudinal project
 	if (!longitudinal) return;
-	 
+
 	var params = {
 		'action':'testRecordLabel',
 		'settings': {
 			'record_label': $('#record_label').val()
 		}
 	};
-	
+
 	$.ajax({
 		type: 'POST',
 		url: '',
@@ -208,7 +208,7 @@ function testRecordLabel() {
 			//console.log('looks good');
 			// Looks good
 		} else {
-			simpleDialog(data.msg,'Abmiguous Events In Record Label', 
+			simpleDialog(data.msg,'Ambiguous Events In Record Label',
 				valPopupId, 450,
 				'$("#record_label").show("highlight").focus();','Cancel',
 				'$("#record_label").val("'+data.new_logic+'");','Accept Modified Label');
@@ -220,14 +220,14 @@ function testRecordLabel() {
 function testFilter() {
 	// Don't do anything if this isn't a longitudinal project
 	if (!longitudinal) return;
-	 
+
 	var params = {
 		'action':'testFilter',
 		'settings': {
 			'filter': $('#filter_logic').val()
 		}
 	};
-	
+
 	$.ajax({
 		type: 'POST',
 		url: '',
@@ -243,7 +243,7 @@ function testFilter() {
 			//console.log('looks good');
 			// Looks good
 		} else {
-			simpleDialog(data.msg,'Abmiguous Events In Filter', 
+			simpleDialog(data.msg,'Ambiguous Events In Filter',
 				valPopupId, 450,
 				'$("#filter_logic").show("highlight").focus();','Cancel',
 				'$("#filter_logic").val("'+data.filter_explicit+'");','Accept Modified Filter');
@@ -252,7 +252,7 @@ function testFilter() {
 }
 
 
-/* 
+/*
 	SECTION FOR FANCY EXCLUDE DIV FEATURES
 
 	This whole part of the UI should probably be changed... I tried to reuse some existing REDCap stuff but there is a lot of overhead here that is probably unnecessary...

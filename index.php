@@ -1,11 +1,11 @@
 <?php
-	
-	
+
+
 /**
 
 	This is an attempt to re-write the dashboard as an ajax version that allows for creating customized dashboards almost like reports with a few new features
 
-**/	
+**/
 
 error_reporting(E_ALL);
 
@@ -32,14 +32,14 @@ $debug = array();
 // Set the default config values
 $config = array(
 	'title' => 'Default Custom Dashboard',
-	'description' => 'A custom dashboard allows you to build separate record status views to support various workflows in your project.  You can exclude certain forms and events to make it easier to read and faster to render - either by using the config panel or by clicking on the column headers.  You can also add record-level filters to omit those records you are not concerned with.  Lastly, there are a number of visualization enhancements such as row grouping and vertical alignment that make the table easier to read.  Users with project-design rights can save custom dashboards as bookmarks to be used by other users in the proejct.',
+	'description' => 'A custom record status dashboard allows you to build separate record status views to support various workflows in your project. With this feature, you can exclude certain forms and/or events to make it easier to read and faster to render - either by using the configuration panel (“Customize Dashboard”) or by clicking on the red X in the right-hand corner when hovering over the column headers. You can also add record-level filters to omit those records you are not concerned with. For example, you could exclude those records from the Record Status Dashboard that have been excluded from the study or have been marked as Complete. The filtering functions the same way as using branching logic (i.e., [excluded] = ‘1’ or [gender] = ‘2’) or the filtering feature when creating Reports. Lastly, there are a number of visualization enhancements, such as row grouping and vertical alignment, that make the table easier to read. Users with project-design rights can save custom dashboards as bookmarks that can be used by other users on the project.',
 	'record_label'=>'',
 	'filter' => '',
 	'arm' => 1,
 	'num_per_page' => 25,
 	'pagenum' => 1,
 	'group_by' => REDCap::isLongitudinal() ? 'event' : 'form',	//form or event
-	'vertical_header' => 0,	// default to horizontal	
+	'vertical_header' => 0,	// default to horizontal
 	'excluded_forms' => '',
 	'excluded_events' => '',
     'order_by' => ''
@@ -74,7 +74,7 @@ if (empty($_POST)) {
 	include APP_PATH_DOCROOT . 'ProjectGeneral/header.php';
 	include 'custom_dashboard.js';
 	renderPageTitle("<img src='".APP_PATH_IMAGES."application_view_icons.png' class='imgfix2'> Custom {$lang['global_91']}");
-	
+
 	// Determien whether or not to display the 'config' bar:
 	$display_config = $config['can_edit'] ? 'block' : 'none';
 	if ($config['can_edit']) {
@@ -86,36 +86,36 @@ if (empty($_POST)) {
 		);
 		print $html;
 	}
-	
+
 	//	print RCView::div(array('id'=>'cd_container'), customDashboard::getFullContainer($config));
 	print customDashboard::getConfigBox($config);
 	print RCView::div(
-		array('id'=>'cd_container'), 
+		array('id'=>'cd_container'),
 		customDashboard::getDashboard($config)
 	);
-	
+
 	print RCView::div(
 		array('id'=>'overlay'),
 		RCView::div(array('style'=>'font-size:16px; font-weight:bold; color:#333;padding:25px;'),"Updating Table...")
 	);
-	
+
 	//print "Proj->events: <pre>" . print_r($Proj->events,true) . "</pre>";
-	
+
 	// Page footer
 	include APP_PATH_DOCROOT . 'ProjectGeneral/footer.php';
 }
 // AJAX POST from AJAX to tweak settings
-else 
+else
 {
 	$debug['post'] = $_POST;
-	
+
 	// Merge the POSTED settings into the existing array (this will override query string parameters)
 	if (!empty($_POST['settings'])) $config = array_merge($config,$_POST['settings']);
 	$debug['config_after_post'] = $config;
-		
+
 	// DETERMINE WHAT ACTION WE ARE DOING
 	$action = isset($_REQUEST['action']) ? $_REQUEST['action'] : NULL;
-	
+
 	// ACTION: TESTFILTER - Called to test the validity of modified filter logic
 	if ($action == 'testFilter') {
 		$result = customDashboard::testFilter($config['filter']);
@@ -125,7 +125,7 @@ else
 		//);
 		exit();
 	}
-	
+
 	// ACTION: TESTRECORDLABEL - Called to test the validity of modified record label
 	if ($action == 'testRecordLabel') {
 		$result = customDashboard::testTextLogic($config['record_label'], $config['arm']);
@@ -134,16 +134,16 @@ else
 		//	"DEBUG: <pre>".print_r($debug,true)."</pre>"
 		//);
 		exit();
-	}	
-	
+	}
+
 	// ACTION: SAVE - saves the current settings to a bookmark
 	if ($action == 'saveDashboard') {
 		$errors = array();
 		$actionLog = array();
-		
+
 		// Determine the ext_id to use to save the bookmark
 		$ext_id = isset($config['ext_id']) && $config['ext_id'] > 0 ? $config['ext_id'] : NULL;
-		
+
 		// This is a NEW resource - we have to get a new extID first
 		if (!$ext_id) {
 			// Get the next order number
@@ -151,9 +151,9 @@ else
 			$q = db_query($sql);
 			$max_link_order = db_result($q, 0);
 			$next_link_order = (is_numeric($max_link_order) ? $max_link_order+1 : 1);
-			
+
 			// Insert into table
-			$sql = "insert into redcap_external_links (project_id, link_order, append_record_info, append_pid) values 
+			$sql = "insert into redcap_external_links (project_id, link_order, append_record_info, append_pid) values
 					($project_id, $next_link_order, 0, 1)";
 			$actionLog['sql'] = $sql;
 			$q = db_query($sql);
@@ -165,44 +165,44 @@ else
 				$config['ext_id'] = $new_ext_id;
 			}
 		}
-		
+
 		// Build the url from the settings
 		$settings = urlencode(json_encode($config));
 
 		//$url = 'https://redcap.stanford.edu/plugins/custom_dashboard/index.php?settings=' . $settings;
-		// Cinly caught this omission... 
+		// Cinly caught this omission...
 		$url = $relativePath . "?settings=" . $settings;
-		
+
 		// Name the bookmark
 		$link_label = 'Custom Dashboard: ' . $config['title'];
 		$actionLog['link_label'] = $link_label;
-		
+
 		// Update the Resource
-		$sql = "UPDATE redcap_external_links SET 
-				link_label = '". prep($link_label) . "', 
-				link_url = " . checkNull($url) . " 
-			WHERE 
-				ext_id = $ext_id AND 
-				project_id = $project_id 
+		$sql = "UPDATE redcap_external_links SET
+				link_label = '". prep($link_label) . "',
+				link_url = " . checkNull($url) . "
+			WHERE
+				ext_id = $ext_id AND
+				project_id = $project_id
 			LIMIT 1";
 		$actionLog['sql2'] = $sql;
 		$q = db_query($sql);
 		if (!$q) $errors[] = "ERROR: Unable to update external link $ext_id";
-		
+
 		// Return results
 		if (!empty($errors)) {
 			$actionLog['errors'] = implode("\n",$errors);
 		}
 		print json_encode($actionLog);
 	}
-	
+
 	// ACTION: DELETE - deletes the current
 	if ($action == 'deleteDashboard') {
 		$result = array();
 		$ext_id = isset($config['ext_id']) && $config['ext_id'] > 0 ? $config['ext_id'] : NULL;
 		if ($ext_id) {
 			$where = "ext_id = " . prep($ext_id) . " AND project_id = " . prep($project_id);
-			
+
 			// Check existance
 			$sql = "SELECT link_label FROM redcap_external_links WHERE $where";
 			$q = db_query($sql);
@@ -226,12 +226,12 @@ else
 		}
 		print json_encode($result);
 	}
-	
+
 	// ACTION: RENDER FULL DASHBOARD CONTAINER - returns the full cd_container
 	if ($action == 'getDashboard') {
 		print customDashboard::getDashboard($config);
 	}
-	
+
 	// ACTION: RENDER TABLE ONLY - returns only the table / pagination
 	if ($action == 'getTableContainer') {
 		print customDashboard::getTable($config);
@@ -244,13 +244,13 @@ exit();
 
 
 class customDashboard {
-	
+
 	// Generate the code to edit the filter
 	public static function getConfigBox($config) {
-		global $Proj, $debug, $user_rights, $record_label;
-		
+		global $Proj, $debug, $user_rights, $record_label, $lang;
+
 		$filter_logic = $config['filter'];
-		
+
 		// Arms Options
 		$arms_select = false;
 		if ($Proj->multiple_arms) {
@@ -265,25 +265,29 @@ class customDashboard {
 				'onchange'=>'refreshDashboard();'),
 				$arms_options, $config['arm']);
 		}
-		
+
 		// Make the Config box (initially not displayed)
 		$html =	RCView::div(array('id'=>'configbox', 'class'=>'chklist trigger', 'style'=>"max-width:775px;display:none;"),
 			RCView::div(array('class'=>'chklisthdr', 'style'=>'font-size:13px;color:#393733;margin-bottom:5px;'), 				RCView::img(array('src'=>'gear.png', 'class'=>'imgfix'))." Configuration Options:"
-			).	
+			).
 			RCView::p(array(),"Configuration options are only available to users with design rights.  Permissions to each saved dashboard can be edited under the 'Add Edit Bookmarks' section.").
 			RCView::table(array('cellspacing'=>'5', 'class'=>'tbi', 'style'=>'width:100%'),
 				RCView::tr(array(),
 					RCView::td(array('class'=>'td1'), "<label>Dashboard Title:</label>").
 					RCView::td(array('class'=>'td2'),
 						RCView::input(array(
-							'id'=>'dashboard_title', 
+							'id'=>'dashboard_title',
 							'class'=>'x-form-text x-form-field',
-							'style'=>'font-size:14px;font-weight:bold;width:608px;',
+							'style'=>'font-size:14px;font-weight:bold;width:578px;',
 							'name'=>'dashboard_title',
 							'value'=>htmlentities($config['title'],ENT_QUOTES))
 						).
+						RCView::a(array('href'=>'javascript:;', 'class'=>'help',
+							'title'=>$lang['global_58'],
+							'onclick'=>"simpleDialog('".cleanHtml('Enter a name to describe this customized dashboard')."',
+													 '".cleanHtml('Dashboard Title')."');"), '?'),
 						RCView::input(array(
-							'id'=>'ext_id', 
+							'id'=>'ext_id',
 							'type'=>'hidden',
 							'name'=>'ext_id',
 							'value'=>$config['ext_id'])
@@ -295,9 +299,13 @@ class customDashboard {
 					RCView::td(array('class'=>'td2'),
 						RCView::textarea(array(
 							'class'=>'x-form-text x-form-field',
-							'style'=>'width:608px;height:30px;',
-							'id'=>'dashboard_description'), 
-						htmlentities($config['description'],ENT_QUOTES))
+							'style'=>'width:578px;height:30px;',
+							'id'=>'dashboard_description'),
+						htmlentities($config['description'],ENT_QUOTES)).
+						RCView::a(array('href'=>'javascript:;', 'class'=>'help',
+							'title'=>$lang['global_58'],
+							'onclick'=>"simpleDialog('".cleanHtml('Enter any notes you want the users of this dashboard to see. For example, you might want to list instructions for the different groups or roles who will use this report.')."',
+													 '".cleanHtml('Description / Instructions')."');"), '?')
 					)
 				).
 				RCView::tr(array(),
@@ -305,9 +313,14 @@ class customDashboard {
 					RCView::td(array('class'=>'td2'),
 					 	RCView::textarea(array(
 							'class'=>'x-form-text x-form-field code',
-							'style'=>'width:608px;',
+							'style'=>'width:578px;',
 							'id'=>'record_label',
-							'onchange'=>"javascript:testRecordLabel()"), $record_label)
+							'onchange'=>"javascript:testRecordLabel()"), $record_label).
+						RCView::a(array('href'=>'javascript:;', 'class'=>'help',
+							'title'=>$lang['global_58'],
+							'onclick'=>"simpleDialog('".cleanHtml('Enter a custom label if you want. It will apply to all records in this dashboard.')."',
+													 '".cleanHtml('Custom Record Label')."');"), '?')
+
 					)
 				).
 				RCView::tr(array(),
@@ -315,9 +328,13 @@ class customDashboard {
 					RCView::td(array('class'=>'td2'),
 					 	RCView::textarea(array(
 							'class'=>'x-form-text x-form-field code',
-							'style'=>'width:608px;',
+							'style'=>'width:578px;',
 							'id'=>'filter_logic',
-							'onchange'=>"javascript:testFilter()"), $filter_logic)
+							'onchange'=>"javascript:testFilter()"), $filter_logic).
+						RCView::a(array('href'=>'javascript:;', 'class'=>'help',
+							'title'=>$lang['global_58'],
+							'onclick'=>"simpleDialog('".cleanHtml('Enter filter logic statement here. Similar to branching logic, if the statement evaluates to true for a report, that report will be displayed.')."',
+													 '".cleanHtml('Filter Logic')."');"), '?')
 					)
 				).
 				($arms_select ? RCView::tr(array(),
@@ -388,18 +405,18 @@ class customDashboard {
 		$html .= "<script>autosize( $('#configbox textarea') );</script>";
 		return $html;
 	}
-	
+
 	// Generate the entire dashboard from head to toe
 	public static function getDashboard($config) {
 		global $user_rights, $Proj, $debug;
-		
+
 		// Build table
 		$table_html = RCView::div(array('id'=>'table_container'), self::getTable($config));
-				
+
 		//$arm_tabs_html = self::getArmSelector($config['arm']);
 		//$filter_html = '';//self::getConfigBox($config);
 		$instructions_html = self::getInstructions($config);
-		
+
 		// Build debug (must be last)
 		$debug_html = RCView::div(array('id'=>'debug_container','style'=>'cursor:pointer;','onclick'=>'$("#debug").slideToggle();'),
 			RCView::img(array('src'=>'updown.gif', 'class'=>'imgfix')) . "SHOW DEBUG" .
@@ -407,18 +424,18 @@ class customDashboard {
 				"<pre>".print_r($debug,true)."</pre>"
 			)
 		);
-		
+
 		// Show/hide filter box
-		return (USERID == 'andy123' ? $debug_html : '' ) . 
-			$instructions_html . 
+		return (USERID == 'andy123' ? $debug_html : '' ) .
+			$instructions_html .
 			$table_html;
 	}
-	
+
 	// Returns an array the events where this field is present
 	public static function getValidEventsForField($field, $arm = null) {
 		global $Proj, $debug;
 		$form_name = $Proj->metadata[$field]['form_name'];
-		
+
 		// Get all events where this form is defined
 		$events = array();
 		foreach ($Proj->eventsForms as $event_id => $forms) {
@@ -426,7 +443,7 @@ class customDashboard {
 				$events[$event_id] = REDCap::getEventNames(true,false,$event_id);
 			}
 		}
-		
+
 		// If multi-arm we might need to filter out events not in the current arm
 		if ($Proj->multiple_arms && isset($Proj->events[$arm])) {
 			// Arm is valid - get defined events in the arm
@@ -435,7 +452,7 @@ class customDashboard {
 		}
 		return $events;
 	}
-	
+
 	// Test custom record label logic
 	public static function testTextLogic($logic, $arm = null) {
 		global $debug;
@@ -475,13 +492,13 @@ class customDashboard {
 		if (!empty($errors)) {
 			$result['valid'] = false;
 			$result['msg'] = "In a longitudinal project each variable must be prefixed with an explicit unique event name.  The following were missing events:<div style='padding:10px;'>" . implode("<br>",$errors) . "</div>The proposed modified label assumes you want to use the first available events for each of the above fields:<div style=\"font-size:11px;font-face:Monaco, monospace;background-color:#fafafa;border:1px solid #ddd;color:#393733;padding:5px;\">" . $new_logic . "</div>Press cancel to manually modify the expression.";
-			$result['new_logic'] = $new_logic; 
+			$result['new_logic'] = $new_logic;
 		} else {
 			$result['valid'] = true;
 		}
 		return $result;
 	}
-	
+
 	// Test the filter logic - returns an array with keys valid, msg, filter_explicit
 	public static function testFilter($filter_logic) {
 		global $debug;
@@ -494,13 +511,13 @@ class customDashboard {
 				// Get name of first event
 				$events = REDCap::getEventNames(true);
 				$first_event = array_shift($events);
-				
+
 				// Verify that the filter is explicit
 				$filter_explicit = trim(LogicTester::logicPrependEventName($filter_logic, $first_event));
-				
+
 				if ($filter_explicit !== $filter_logic) {
 					$msg = "In a longitudinal project each filter variable must be prefixed with an explicit unique event name.  You can cancel to modify the filter or accept the proposed modification which assumes all fields belong to the first event/arm in the project ($first_event)<div style=\"font-size:11px;font-face:Monaco, monospace;background-color:#fafafa;border:1px solid #ddd;color:#393733;padding:5px;\">$filter_explicit</div>";
-					
+
 					$result = array(
 						'valid'=>'false',
 						'msg'=>$msg,
@@ -515,32 +532,32 @@ class customDashboard {
 		}
 		return $result;
 	}
-	
+
 	// Takes the object's recordNames array and filters it down based based on the logic supplied
 	public static function filterRecords($records, $filter_logic) {
 		global $debug;
-		
+
 		$debug['filter_start'] = "Starting with " . count($records) . " records and $filter_logic";
-		
+
 		// Apply Filter
 		if (!empty($filter_logic)) {
 			$start_time = microtime(true);
 			$start_count = count($records);
-			
+
 			// Return an array with values of 0 or 1 for each record to determine if they pass the filter
 			$logicResults = self::evaluateLogicMultipleRecords($filter_logic, $records);
-			
+
 			// Filter the recordNames array to only retain records that evaluated to true with the logic
 			$filteredRecords = array_filter(
-				$records, 
+				$records,
 				function($record_id) use ($logicResults) {
 					return isset($logicResults[$record_id]) && $logicResults[$record_id] == 1;
 				}
 			);
-			
+
 			// Rekey the filtered array
 			$records = array_values($filteredRecords);
-			
+
 			// Prepare debug summary
 			$end_count = count($filteredRecords);
 			$filter_time = round(microtime(true) - $start_time,2);
@@ -553,16 +570,16 @@ class customDashboard {
 	// Returns an array of $pageNumDropdown and $recordsThisPage
 	private static function getPageNumAndSlice($records, $config) {
 		global $lang, $debug;
-		
+
 		$num_records = count($records);
 		$num_per_page = $config['num_per_page'] == 'ALL' ? $num_records : $config['num_per_page'];
 		$num_pages = ceil($num_records/$num_per_page);
 		$pagenum = min($config['pagenum'],$num_pages);	// Cannot specify a pagenum over the max number
 		$limit_begin = ($pagenum - 1) * $num_per_page;
-		
+
 $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 //		if ($num_records == 0) return array(RCView::div(array(),"No records"), array(''));
-		
+
 		// Build drop-down list of page numbers
 		$pageNumDropdownOptions = array();
 		for ($i = 1; $i <= $num_pages; $i++) {
@@ -573,7 +590,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 			$pageNumDropdownOptions[$i] = "Page $i of $num_pages: \"".removeDDEending($records[$begin_num-1]).
 				"\" {$lang['data_entry_216']} \"".removeDDEending($records[$end_num-1])."\"";
 		}
-		
+
 		// Build drop-down list of records per page options, including any legacy values
 		$recordsPerPageOptions = array('ALL' => $lang['docs_44'] . " ($num_records)");
 		$defaultRecordsPerPage = array(10,25,50,100,250,500,1000);
@@ -584,7 +601,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 		foreach ($defaultRecordsPerPage as $opt) {
 			$recordsPerPageOptions[$opt] = $opt;
 		}
-		
+
 		// Build the group-by selector (longitudinal only)
 		$groupBySelector =  RCView::div(array('style'=>'display:inline-block;'),
 			"Group by" .
@@ -595,8 +612,8 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 					'onchange'=>"refreshTable();"),
 					array('form'=>'Form','event'=>'Event'), $config['group_by'])
 		);
-		
-		
+
+
 		// Record Selection Block
 		$pageNumDropdown = RCView::div(array('style'=>'display:inline-block;'),
 			"Displaying".
@@ -612,7 +629,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 				), $recordsPerPageOptions, $num_per_page
 			) . " records per page"
 		);
-		
+
 		// SLICE RESULTS
 		if ($num_records > $num_per_page) {
 			$debug[] = "Slicing: $num_records from $limit_begin for $num_per_page";
@@ -622,10 +639,10 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 			$recordNamesThisPage = $records;
 		}
 		if (count($recordNamesThisPage) == 0) $recordNamesThisPage = array('');
-		
+
 		// BUILD RESULTS
-		$recordToolbar = 
-		RCView::div(array('style'=>'font-weight:bold;margin:0 4px;font-size:13px;'), 
+		$recordToolbar =
+		RCView::div(array('style'=>'font-weight:bold;margin:0 4px;font-size:13px;'),
 			"Showing " . count($recordNamesThisPage) . " of " . $num_records . " records" .
 				($num_pages > 1 ? " (page $pagenum of $num_pages pages)" : "")
 		).
@@ -636,23 +653,23 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 				(REDCap::isLongitudinal() ? $groupBySelector : '')
 			)
 		);
-		
+
 		return array($recordToolbar, $recordNamesThisPage);
-		
+
 	}
-	
+
 	// Returns an array of formEvents to be displayed
 	private static function buildFormsEvents($group_by = 'form', $excluded_forms = array(), $excluded_events = array(), $arm = NULL) {
 		global $Proj, $debug;
-		
+
 		// Get User Rights
 		$user_rights = REDCap::getUserRights(USERID);
 		$user_rights = $user_rights[USERID];
-		
+
 		// Convert $excluded_events into $excluded_event_ids
 		$events = REDCap::getEventNames(true);
 		$excluded_event_ids = array_keys(array_intersect($events,$excluded_events));
-		
+
 		// Build a form-events array that contains necessary information to create the colspan headers
 		$formsEvents = array();
 		if ($group_by == 'form') {
@@ -660,7 +677,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 				// If multi-arm, filter events to current arm
 				//$debug['arm:'.$this_arm] = $group_by . " : " . json_encode($arm_attr);
 				if ($arm && $arm != $this_arm) continue;
-				
+
 				// Loop through each instrument
 				foreach ($Proj->forms as $form_name=>$form_attr) {
 					// If user does not have form-level access to this form, then do not display it
@@ -698,45 +715,45 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 				}
 			}
 		}
-		
+
 		// Add the colspan attributes to the array for display purposes
 		//$debug['formsEvents1'] = $formsEvents;
 		$formsEvents = self::addColSpan($formsEvents, $group_by == 'form' ? 'form_name' : 'event_id');
 		//$debug['formsEvents2'] = $formsEvents;
-		
+
 		return $formsEvents;
 	}
 
 	// Returns a properly grouped header row of events/forms
 	private static function buildHeaderRows($formsEvents, $config) {
 		global $Proj, $showRTWS, $DDP, $debug;
-		
+
 		$longitudinal = REDCap::isLongitudinal();
 		$group_by = $longitudinal ? $config['group_by'] : 'form';
-		
+
 		// HEADERS: Add all row HTML into $rows. Add header to table first.
-		$hdrs = RCView::th(array('class'=>'header', 'style'=>'text-align:center;color:#800000;padding:3px;vertical-align:bottom;', 'rowspan'=>($longitudinal ? '2' : '1')), 
+		$hdrs = RCView::th(array('class'=>'header', 'style'=>'text-align:center;color:#800000;padding:3px;vertical-align:bottom;', 'rowspan'=>($longitudinal ? '2' : '1')),
 		$config['vertical_header'] ? self::wrapVerticalSpan($Proj->table_pk_label) : $Proj->table_pk_label);
-		
+
 		// Add column for custom record label
 		if (!empty($config['record_label'])) {
 			$record_label_title = $config['record_label']; //"Custom Label";
 			$hdrs .= RCView::th(array('class'=>'header', 'style'=>'text-align:center;color:#800000;padding:3px;vertical-align:bottom;', 'rowspan'=>($longitudinal ? '2' : '1')),
 			$config['vertical_header'] ? self::wrapVerticalSpan($record_label_title) : $record_label_title);
 		}
-		
+
 		// If RTWS is enabled, then display column for it
 		// THIS HAS NOT BEEN TESTED!!!!
 		if ($showRTWS) {
-			$hdrs .= RCView::th(array('id'=>'rtws_rsd_hdr', 'class'=>'wrap darkgreen', 'rowspan'=>($longitudinal ? '2' : '1'), 'style'=>'line-height:10px;width:100px;font-size:11px;text-align:center;padding:5px;white-space:normal;vertical-align:bottom;'), 
-						RCView::div(array('style'=>'font-weight:bold;font-size:12px;margin-bottom:7px;'), 
-							RCView::img(array('src'=>'databases_arrow.png', 'class'=>'imgfix')) . 
+			$hdrs .= RCView::th(array('id'=>'rtws_rsd_hdr', 'class'=>'wrap darkgreen', 'rowspan'=>($longitudinal ? '2' : '1'), 'style'=>'line-height:10px;width:100px;font-size:11px;text-align:center;padding:5px;white-space:normal;vertical-align:bottom;'),
+						RCView::div(array('style'=>'font-weight:bold;font-size:12px;margin-bottom:7px;'),
+							RCView::img(array('src'=>'databases_arrow.png', 'class'=>'imgfix')) .
 							$lang['ws_30']
 						) .
 						$lang['ws_06'] . RCView::SP . $DDP->getSourceSystemName()
 					);
 		}
-		
+
 		$longHdrs = '';	//Longitudinal Header if needed
 		$colCount = 1;	//Start with one column for the record_id
 		foreach ($formsEvents as $attr) {
@@ -745,7 +762,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 			$event_label = $Proj->eventInfo[$attr['event_id']]['name_ext'];
 			// Strip arm from event labels in multi-arm projects
 			if ($Proj->multiple_arms) $event_label = preg_replace('/\(.*\)/','',$event_label);
-			
+
 			$group_detail = array(
 				'form' => array(
 					'label' => $attr['form_label'],
@@ -756,17 +773,17 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 					'id' => $attr['event_id']
 				)
 			);
-			
+
 			//print "ATTR: <pre>" . print_r($attr,true) . "</pre>";
 			//print "GROUP TYPES: <pre>" . print_r($group_types,true) . "</pre>";
-			
+
 			// Add pop-up info
 			//$event_label = RCView::a(array('href'=>'javascript:;','onclick'=>'showEventDetail('.$attr['event_id'].');'), $event_label);
-			
+
 			if(isset($attr['colspan'])) {
 				$colCount = $colCount + $attr['colspan'];
 				$group = $group_detail[$group_by];
-				
+
 				// Set label based on vertical or horizontal
 				$label = $group['label'];
 				$vertical = (!$longitudinal && $config['vertical_header']);
@@ -778,7 +795,7 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 						'style'=>'font-size:11px;text-align:center;white-space:normal;'),
 						$label);
 				}
-				
+
 				// Make it excludable and add the group/id attribute for javascript routine
 				$hdrs .= RCView::th(array(
 						'class'=>'header excludable',
@@ -790,10 +807,10 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 						$label
 				);
 			}
-			
+
 			// Add second header column for longitudinal projects
 			if ($longitudinal) {
-				$vertical = $config['vertical_header']; 
+				$vertical = $config['vertical_header'];
 				// Take opposite of group_by from previous row
 				$group_by_other = ($group_by == 'form' ? 'event' : 'form');
 				$group = $group_detail[$group_by_other];
@@ -813,36 +830,36 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 				);
 			}
 		}
-		
+
 		// Add a header row if a specific arm is being displayed:
-		$arm_row = $Proj->multiple_arms ? 
+		$arm_row = $Proj->multiple_arms ?
 			RCView::tr('', RCView::th(array(
 				'class'=>'x-panel-header',
 				'colspan'=>$colCount,
 				'style'=>'text-align:center;'),
-				$Proj->events[$config['arm']]['name'])) : 
+				$Proj->events[$config['arm']]['name'])) :
 			'';
-		
+
 		$rows = RCView::thead('',
-			$arm_row . 
+			$arm_row .
 			RCView::tr('', $hdrs).
 			(REDCap::isLongitudinal() ? RCView::tr('', $longHdrs) : '')
 		);
 		return $rows;
 	}
-	
+
 	// Takes the content and wraps it in two spans for vertical display - adding $attributes to inner span for css
 	public static function wrapVerticalSpan($content, $attributes = array()) {
 		return RCView::span(array('class'=>'vertical-text'),
 			RCView::span(array_merge($attributes, array('class'=>'vertical-text-inner')), $content)
 		);
 	}
-	
+
 	// New method for making the actual table
 	public static function getTable($config) {
 		global $Proj, $user_rights, $DDP, $project_id, $table_pk_label, $lang, $surveys_enabled, $debug, $realtime_webservice_offset_days, $realtime_webservice_offset_plusminus;
 		$last_lap_ts = microtime(true);
-		
+
 		// Get all records (filtering for arm if set)
 		$recordNames = self::getRecordList(PROJECT_ID, $user_rights['group_id'], false, $Proj->multiple_arms ? $config['arm'] : NULL);
 		$debug['recordNames'] = count($recordNames) . " Records";
@@ -863,11 +880,11 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 
 		// Get the page dropdown header and sliced records
 		list($pageNumDropdown, $recordNamesThisPage) = self::getPageNumAndSlice($recordNames, $config);
-		
+
 		// Get form status of just this page's records
 		$formStatusValues = Records::getFormStatus(PROJECT_ID, $recordNamesThisPage);
 		$numRecordsThisPage = count($formStatusValues);
-		
+
 		// If a Record Label is defined, get it!
 		if (!empty($config['record_label'])) {
 			// Step 1: get the data for all records/field/events
@@ -877,22 +894,22 @@ $debug['getPageNumAndSlice'] = "NumRecords: $num_records";
 		}
 $lap_duration = round(microtime(true) - $last_lap_ts,2);
 $last_lap_ts = microtime(true);
-$debug['getFormStatus'] = "getFormStatus for $numRecordsThisPage records took in $lap_duration seconds.";		
-		
-		
-		
+$debug['getFormStatus'] = "getFormStatus for $numRecordsThisPage records took in $lap_duration seconds.";
+
+
+
 //$debug['formStatusValues'] = $formStatusValues;
 //$debug['numRecordsThisPage'] = $numRecordsThisPage;
-		
+
 		// Get custom record labels
 		$extra_record_labels = Records::getCustomRecordLabelsSecondaryFieldAllRecords($recordNamesThisPage);
-				
+
 		// Determine if records also exist as a survey response for some instruments
 		$surveyResponses = $surveys_enabled ? Survey::getResponseStatus(PROJECT_ID, array_keys($formStatusValues)) : array();
-		
+
 		// Determine if Real-Time Web Service is enabled, mapping is set up, and that this user has rights to adjudicate
 		$showRTWS = ($DDP->isEnabledInSystem() && $DDP->isEnabledInProject() && $DDP->userHasAdjudicationRights());
-		
+
 		// If RTWS is enabled, obtain the cached item counts for the records being displayed on the page
 		if ($showRTWS)
 		{
@@ -906,28 +923,28 @@ $debug['getFormStatus'] = "getFormStatus for $numRecordsThisPage records took in
 				$records_with_cached_data[$row['record']] = $row['item_count'];
 			}
 		}
-		
+
 $lap_duration = round(microtime(true) - $last_lap_ts,2);
 $last_lap_ts = microtime(true);
-$debug['step2'] = "getting labels and survey responses took in $lap_duration seconds.";		
-		
-		
+$debug['step2'] = "getting labels and survey responses took in $lap_duration seconds.";
+
+
 		$group_by = $config['group_by'];
 		$excluded_forms = empty($config['excluded_forms']) ? null : array_map('trim',explode(",",$config['excluded_forms']));
 		$excluded_events = empty($config['excluded_events']) ? null : array_map('trim',explode(",",$config['excluded_events']));
-		
+
 		// Make summary of formEvent filter
 		$formEventsSummary = array();
 		if (count($excluded_forms)) $formEventsSummary[] = RCView::span(array('title'=>$config['excluded_forms']), count($excluded_forms) . " form" . (count($excluded_forms) > 1 ? 's' : ''));
 		if (count($excluded_events)) $formEventsSummary[] = RCView::span(array('title'=>$config['excluded_events']), count($excluded_events) . " event" . (count($excluded_events) > 1 ? 's' : ''));
 		if (count($formEventsSummary)) $debug['summary'][] = "Removing " . implode(' and ', $formEventsSummary);
-		
+
 		$formsEvents = self::buildFormsEvents($group_by,$excluded_forms,$excluded_events,$config['arm']);
 		//$debug['formEvents'] = $formsEvents;
-				
+
 $lap_duration = round(microtime(true) - $last_lap_ts,2);
 $last_lap_ts = microtime(true);
-$debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration seconds.";		
+$debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration seconds.";
 
         $recordLockSigStatus = self::getLockAndEsignedStatus($project_id, $formStatusValues);
         $debug['formStatusValues'] = print_r($formStatusValues,true);
@@ -941,22 +958,22 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 
 		// Start building the table with the Header rows
 		$rows = self::buildHeaderRows($formsEvents, $config);
-		
+
 		// IF NO RECORDS EXIST, then display a single row noting that
 		if (empty($formStatusValues))
 		{
-			$rows .= RCView::tr('', 
-						RCView::td(array('class'=>'data','colspan'=>count($formsEvents)+($showRTWS ? 1 : 0)+1,'style'=>'font-size:12px;padding:10px;color:#555;'), 
+			$rows .= RCView::tr('',
+						RCView::td(array('class'=>'data','colspan'=>count($formsEvents)+($showRTWS ? 1 : 0)+1,'style'=>'font-size:12px;padding:10px;color:#555;'),
 							$lang['data_entry_179']
 						)
 					);
 		}
-		
+
 		// ADD ROWS: Get form status values for all records/events/forms and loop through them
-		foreach ($formStatusValues as $this_record=>$rec_attr) 
-		{		
+		foreach ($formStatusValues as $this_record=>$rec_attr)
+		{
 			// For each record (i.e. row), loop through all forms/events
-			$this_row = RCView::td(array('class'=>'data','style'=>'font-size:12px;padding:0 10px;'), 
+			$this_row = RCView::td(array('class'=>'data','style'=>'font-size:12px;padding:0 10px;'),
 							// For longitudinal, create record name as link to event grid page
 							(REDCap::isLongitudinal()
 								? RCView::a(array('href'=>APP_PATH_WEBROOT . "DataEntry/grid.php?pid=$project_id&arm=".$config['arm']."&id=".removeDDEending($this_record), 'style'=>'text-decoration:underline;'), removeDDEending($this_record))
@@ -965,10 +982,10 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 							// Display custom record label or secondary unique field (if applicable)
 							(isset($extra_record_labels[$this_record]) ? '&nbsp;&nbsp;' . $extra_record_labels[$this_record] : '')
 						);
-			
+
 			if (!empty($config['record_label'])) {
 				$this_row .= RCView::td(array(
-						'class'=>'data', 
+						'class'=>'data',
 						'style'=>'font-size:12px;padding:0 5px;'
 					), RCView::div(array('style'=>'white-space: nowrap;'),
 					// We should get all data for the piping and pass it in as the 4th argument, but for now I'm going to do it one record at a time...  Shame on me.
@@ -976,7 +993,7 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 						)
 				);
 			}
-			
+
 			// If RTWS is enabled, then display column for it
 			if ($showRTWS) {
 				// If record already has cached data, then obtain count of unadjudicated items for this record
@@ -985,8 +1002,8 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 					if ($records_with_cached_data[$this_record] != "") {
 						$itemsToAdjudicate = $records_with_cached_data[$this_record];
 					} else {
-						list ($itemsToAdjudicate, $newItemsTableHtml) 
-							= $DDP->fetchAndOutputData($this_record, null, array(), $realtime_webservice_offset_days, $realtime_webservice_offset_plusminus, 
+						list ($itemsToAdjudicate, $newItemsTableHtml)
+							= $DDP->fetchAndOutputData($this_record, null, array(), $realtime_webservice_offset_days, $realtime_webservice_offset_plusminus,
 														false, true, false, false);
 					}
 				} else {
@@ -1004,7 +1021,7 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 					$num_items_text = $itemsToAdjudicate;
 				}
 				// Display row
-				$this_row .= RCView::td(array('class'=>$rtws_row_class, 'id'=>'rtws_new_items-'.$this_record, 'style'=>'font-size:12px;padding:0 5px;text-align:center;'), 
+				$this_row .= RCView::td(array('class'=>$rtws_row_class, 'id'=>'rtws_new_items-'.$this_record, 'style'=>'font-size:12px;padding:0 5px;text-align:center;'),
 								'<div style="float:left;width:50px;text-align:center;'.$rtws_item_count_style.'">'.$num_items_text.'</div>
 								<div style="float:right;"><a href="javascript:;" onclick="triggerRTWSmappedField(\''.cleanHtml2($this_record).'\',true);" style="font-size:10px;text-decoration:underline;">'.$lang['dataqueries_92'].'</a></div>
 								<div style="clear:both:height:0;"></div>'
@@ -1016,7 +1033,7 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 			foreach ($formsEvents as $attr)
 			{
 				// If it's a survey response, display different icons
-				if (isset($surveyResponses[$this_record][$attr['event_id']][$attr['form_name']])) {			
+				if (isset($surveyResponses[$this_record][$attr['event_id']][$attr['form_name']])) {
 					//Determine color of button based on response status
 					switch ($surveyResponses[$this_record][$attr['event_id']][$attr['form_name']][1]) {
 						case '2':
@@ -1025,7 +1042,7 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 						default:
 							$img = 'circle_orange_tick.png';
 					}
-				} else {	
+				} else {
 					// Set image HTML
 					if ($rec_attr[$attr['event_id']][$attr['form_name']][1] == '2') {
 						$img = 'circle_green.png';
@@ -1066,12 +1083,12 @@ $debug['filter_formsEvents'] = "Calculating formsEvents took in $lap_duration se
 			}
 			$rows .= RCView::tr('', $this_row);
 		}
-		
+
 $lap_duration = round(microtime(true) - $last_lap_ts,2);
 $last_lap_ts = microtime(true);
-$debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";		
-		
-		$html = $pageNumDropdown . 
+$debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
+
+		$html = $pageNumDropdown .
 			RCView::table(array('id'=>'record_status_table', 'class'=>'form_border'), $rows);
 		// . $pageNumDropdown;
 		return $html;
@@ -1087,7 +1104,7 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
         $locked_records = $esigned_records = array();
 
 		// Check if need to display this info at all
-		$sql = "select display, display_esignature from redcap_locking_labels 
+		$sql = "select display, display_esignature from redcap_locking_labels
                 	where project_id = $project_id and form_name in (".prep_implode(array_keys($Proj->forms)).")";
 		$q = db_query($sql);
 		if (db_num_rows($q) == 0) {
@@ -1108,7 +1125,7 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 
 		// Get all locked records and put into an array
 		if ($displayLocking) {
-    			$sql = "select record, event_id, form_name from redcap_locking_data 
+    			$sql = "select record, event_id, form_name from redcap_locking_data
                         	where project_id = $project_id and record in (".prep_implode(array_keys($formStatusValues)).")";
 #			$debug['In display locking'] = $sql;
         		$q = db_query($sql);
@@ -1191,11 +1208,11 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 		}
 		return $result;
 	}
-	
+
 	// Creates a div with selectable forms - requires javascript functions
 	public static function renderExcludeForms($config) {
 		global $Proj, $debug;
-		
+
 		// Get an array of existing excluded forms
 		$excluded_forms = array_map('trim',explode(',',$config['excluded_forms']));
 		// Build a list of checkbox elements
@@ -1205,7 +1222,7 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 			if (in_array($form_name, $excluded_forms)) $attr['checked'] = 'checked';
 			$checkboxes[] = RCView::div(array(),RCView::input($attr).$form_attr['menu']);
 		}
-		
+
 		// Build the hidden div
 		$html = RCView::div(array('id'=>'choose_exclude_forms_div'),
 			RCView::div(array('id'=>'choose_exclude_forms_div_sub'),
@@ -1221,21 +1238,21 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 				implode($checkboxes)
 			)
 		);
-		return $html;		
+		return $html;
 	}
-	
+
 	// Creates a div with selectable events - requires javascript functions
 	public static function renderExcludeEvents($config) {
 		global $Proj, $debug;
-		
+
 		// Get an array of existing event names
 		$excluded_events = array_map('trim',explode(',',$config['excluded_events']));
-		
+
 		// Get an array of all event names (in the current arm)
 		$all_events = REDCap::getEventNames(true);
-		
+
 		$arm_name = $Proj->events[$config['arm']]['name'];
-		
+
 /*		// Build a list of checkbox elements (arm-specific)
 		$checkboxes = array();
 		foreach ($Proj->events[$config['arm']]['events'] as $event_id => $event_attr) {
@@ -1249,12 +1266,12 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 				)
 			);
 		}
-*/		
+*/
 		// Build a list of checkbox elements (all-arms)
 		if ($Proj->multiple_arms) {
 			$options = "<table>";
 		}
-		
+
 		$checkboxHeaders = "<tr>";
 		$checkboxColumns = "<tr>";
 		foreach ($Proj->events as $arm_num => $arm_detail) {
@@ -1277,7 +1294,7 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 			($Proj->multiple_arms ? "<tr>$checkboxHeaders<tr>" : '') .
 			"<tr>$checkboxColumns<tr>
 		</table>";
-		
+
 		// Build the hidden div
 		$html = RCView::div(array('id'=>'choose_exclude_events_div'),
 			RCView::div(array('id'=>'choose_exclude_events_div_sub'),
@@ -1293,25 +1310,25 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 				$checkboxTable
 			)
 		);
-		
-		//($Proj->multiple_arms ? 
+
+		//($Proj->multiple_arms ?
 		//	RCView::div(array('style'=>'font-weight:bold;'), $arm_name) : ''
 		//).
 		//implode($checkboxes)
-		
-		
-		return $html;		
+
+
+		return $html;
 	}
-	
+
 	// Instructions and Legend for colored status icons
 	public static function getInstructions($config) {
 		global $lang, $debug, $surveys_enabled;
 		$html = RCView::table(array('style'=>'width:800px;table-layout:fixed;','cellspacing'=>'0'),
 					RCView::tr('',
 						RCView::td(array('style'=>'padding:10px 30px 10px 0;','valign'=>'top'),
-							(empty($config['title']) ? 
+							(empty($config['title']) ?
 								// Instructions
-								$lang['data_entry_176'] : 
+								$lang['data_entry_176'] :
 								// Custom
 								RCView::div(array(
 									'id'=>'custom_title',
@@ -1374,9 +1391,9 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 				);
 		return $html;
 	}
-	
+
 	// ABM: This is a modified version of the LogicTester::evaluateLogicSingleRecord function changed to evaluate an array of records and does so much more quickly than iterating the same logic through multiple records.  The output is an array of record_ids with logic results
-	private static function evaluateLogicMultipleRecords($raw_logic, $records, $record_data=null) 
+	private static function evaluateLogicMultipleRecords($raw_logic, $records, $record_data=null)
 	{
 		global $Proj;
 		// Check the logic to see if it's syntactically valid
@@ -1405,13 +1422,13 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 			// Retrieve data from data table since $record_data array was not passed as parameter
 			$record_data = Records::getData($Proj->project_id, 'array', $records, $fields, $events);
 		}
-		
+
 		// Apply the logic on record at a time and modify the input array
 		foreach ($record_data as $record_id => $data) {
 			// ABM - this next section is highly inefficient in this loop, but doesn't appear to take that long so for now I'm not going to try and optimize it...  I also have doubts that this was working correctly in the main version.
-			// If some events don't exist in $record_data because there are no values in data table for that event, 
+			// If some events don't exist in $record_data because there are no values in data table for that event,
 			// then add empty event with default values to $record_data (or else the parse will throw an exception).
-			if (count($events) > count($data)) {		
+			if (count($events) > count($data)) {
 				// Get unique event names (with event_id as key)
 				$unique_events = $Proj->getUniqueEventNames();
 				// Loop through each event
@@ -1436,13 +1453,13 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 					}
 				}
 			}
-			
+
 			// Test the actual logic on the record
 			$record_data[$record_id] = (int) LogicTester::apply($raw_logic, $data);
 		}
 		return $record_data;
 	}
-	
+
 	// ABM: This is a modified version of the RECORDS::getRecordList function changed to include arm filtering
 	public static function getRecordList($project_id=null, $filterByGroupID=null, $filterByDDEuser=false, $filterByArm=null)
 	{
@@ -1460,8 +1477,8 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 		// Filter by DAG, if applicable
 		$dagSql = "";
 		if ($filterByGroupID != '') {
-			$dagSql = "and record in (" . pre_query("SELECT record FROM redcap_data where project_id = $project_id 
-					   and field_name = '__GROUPID__' AND value = '".prep($filterByGroupID)."'") . ")"; 
+			$dagSql = "and record in (" . pre_query("SELECT record FROM redcap_data where project_id = $project_id
+					   and field_name = '__GROUPID__' AND value = '".prep($filterByGroupID)."'") . ")";
 		}
 		// Filter by ARM, if applicable
 		$armSql = "";
@@ -1471,7 +1488,7 @@ $debug['step4'] = "Before return formsEvents took in $lap_duration seconds.";
 		// Put list in array
 		$records = array();
 		// Query to get resources from table
-		$sql = "select distinct $record_dde_field from redcap_data where project_id = $project_id 
+		$sql = "select distinct $record_dde_field from redcap_data where project_id = $project_id
 				and field_name = '" . prep(Records::getTablePK($project_id)) . "' $record_dde_where $dagSql $armSql";
 		$q = db_query($sql);
 		if (!$q) return false;
